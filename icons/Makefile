@@ -1,8 +1,8 @@
 # Makefile for Puzzles icons.
 
 PUZZLES = blackbox bridges cube dominosa fifteen filling flip flood	\
-	  galaxies guess inertia keen lightup loopy magnets map mines	\
-	  net netslide palisade pattern pearl pegs range rect		\
+	  galaxies guess hamilton inertia keen lightup loopy magnets map \
+	  mines net netslide palisade pattern pearl pegs range rect	\
 	  samegame signpost singles sixteen slant solo tents towers	\
 	  twiddle tracks undead unequal unruly untangle
 

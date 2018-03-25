@@ -1396,6 +1396,69 @@ this increases the search space (making things harder), and is turned on by
 default.
 
 
+\C{hamilton} \i{Hamilton}
+
+\cfg{winhelp-topic}{games.hamilton}
+
+You are given a grid of squares, which you must fill in with numbers to
+create an unbroken sequence of numbers, along a path which visits every
+square once.  Some squares are provided as clues.
+
+One variation of this puzzle type was invented by Dr. Gyora M. Benedek,
+under the name \q{Hidato}. See \k{hidato-com} for more details.  Another
+was developed by Marilyn vos Savant, under the name \q{Numbrix}.
+
+Hamilton was contributed to this collection by James Clark.
+
+\B{hidato-com}
+\W{http://www.hidato.com/}\cw{http://www.hidato.com/}
+
+\B{numbrix}
+\W{https://parade.com/numbrix/}\cw{https://parade.com/numbrix/}
+
+\H{hamilton-controls} \I{controls, for Hamilton}Hamilton controls
+
+To play Hamilton, click a number on the grid to select it and
+determine what number will be next.  The next number may be one more
+or one less than the selected number.  If both are available then you
+can click again to toggle between them.  Once a square is selected
+and a next number chosen, click on an empty neighboring square to
+place the next number there.  Right-click on a number to remove it.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{hamilton-parameters} \I{parameters, for Hamilton}Hamilton parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Use diagonal path segments}
+
+\dd By default the path only uses the four cardinal directions.  If this is
+enabled, the path can also travel along diagonals.
+
+\dt \e{Keep first and last clue}
+
+\dd This ensures that the first number (1) and the last number (width times
+height) are given as clues.
+
+\dt \e{Clue pattern}
+
+\dd This changes the pattern of locations of the given clues.  \q{Random}
+puts no restriction on the pattern.  \q{Random Symmetrical} ensure that
+the clues are given in a rotationally-symmetric pattern.  \q{Ring} gives
+every number along a ring one square in from the border.  \q{Border}
+gives every other number along the border.
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle.
+
+
 \C{pegs} \i{Pegs}
 
 \cfg{winhelp-topic}{games.pegs}
