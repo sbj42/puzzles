@@ -172,7 +172,8 @@ static void reverse_locations(location_t * list, int length) {
  * Find a location in a list.  Assert if it is not found.
  */
 static int find_location(location_t const * list, int length, int x, int y) {
-    for (int index = 0; index < length; index ++) {
+    int index;
+    for (index = 0; index < length; index ++) {
         if (list[index].x == x && list[index].y == y)
             return index;
     }
@@ -182,7 +183,7 @@ static int find_location(location_t const * list, int length, int x, int y) {
 
 static char * grid_to_string(number_t const * grid, int w, int h)
 {
-    int linelen, totallen;
+    int linelen, totallen, x, y;
     char *p, *ret;
 
     /*
@@ -196,8 +197,8 @@ static char * grid_to_string(number_t const * grid, int w, int h)
     ret = snewn(totallen + 1, char);     /* leave room for terminating NUL */
 
     p = ret;
-    for (int y = 0; y < h; y ++) {
-        for (int x = 0; x < w; x ++) {
+    for (y = 0; y < h; y ++) {
+        for (x = 0; x < w; x ++) {
             int n = grid[y * w + x];
             if (n == 0) {
                 *p++ = ' ';
@@ -282,8 +283,6 @@ static int get_neighbors_except(location_t neighbors[7], location_t const * curs
     assert(distance(cursor->x, cursor->y, except->x, except->y, diagonal) == 1); /* the two locations must be neighbors */
     int cx = cursor->x;
     int cy = cursor->y;
-    int ex = cursor->x;
-    int ey = cursor->y;
     int length = 0;
     if (cy - 1 >= 0)
         get_neighbors_except_helper(neighbors, &length, cx, cy - 1, except);
@@ -358,11 +357,12 @@ static location_t * random_hampath(random_state * rs,
     int area = w * h;
     location_t * path;
     location_t neighbors[7];
+    int i;
 
     /* make a simple Hamiltonian path */
     path = simple_hampath(w, h);
 
-    for (int i = 0; i < 2 * SHUFFLE_FACTOR * area; i ++) {
+    for (i = 0; i < 2 * SHUFFLE_FACTOR * area; i ++) {
         int neighbors_length;
         /*
          * Due to the random-walk nature of the shuffling, it's possible we
@@ -439,14 +439,15 @@ static location_t * compute_number_to_location_map(number_t const * grid, int w,
 {
     int area = w * h;
     location_t * ret;
+    int i, x, y;
 
     ret = snewn(area + 1, location_t); /* + 1 to accommodate indexes up to and including (area) */
 
-    for (int i = 0; i <= area; i ++)
+    for (i = 0; i <= area; i ++)
         ret[i].x = ret[i].y = NO_COORD;
         
-    for (int y = 0; y < h; y ++) {
-        for (int x = 0; x < w; x++) {
+    for (y = 0; y < h; y ++) {
+        for (x = 0; x < w; x++) {
             int clue = grid[y * w + x];
             if (clue > 0) {
                 ret[clue].x = x;
@@ -546,7 +547,7 @@ static void compute_gaps(number_t const * grid, int w, int h,
     gap_t * gaps = NULL;
     int gaps_length = 0;
     int longest_gap = 0;
-    int first_number, last_number;
+    int i, first_number, last_number;
 
     location_t * number_map = compute_number_to_location_map(grid, w, h);
 
@@ -570,7 +571,7 @@ static void compute_gaps(number_t const * grid, int w, int h,
     }
 
     /* add gaps in between numbers */
-    for (int i = first_number; i <= last_number; i ++) {
+    for (i = first_number; i <= last_number; i ++) {
         location_t * loc = &number_map[i];
         /* if (i) is present and (i - 1) is not, then we've found the end of the current gap */
         if (i > first_number && loc->x != NO_COORD && number_map[i - 1].x == NO_COORD) {
@@ -778,7 +779,7 @@ static int check_blocked_number(number_t const * grid, int w, int h, int diagona
                                int x, int y)
 {
     int n = grid[y * w + x];
-    int available;
+    int available = 0;
     assert(n > 0);
     if (x > 0)
         check_blocked_number_helper(grid, w, x - 1, y, n, &available);
@@ -819,7 +820,8 @@ static int check_blocked_number(number_t const * grid, int w, int h, int diagona
  */
 static int check_blocked_numbers_nearby(solver_state_t const * state, int x, int y)
 {
-    for (int g = 0; g < state->gaps_length; g ++) {
+    int g;
+    for (g = 0; g < state->gaps_length; g ++) {
         gap_t const * gap = &state->gaps[g];
         if (gap->l2.x != NO_COORD) {
             if (distance(gap->l2.x, gap->l2.y, x, y, state->diagonal) == 1) {
@@ -968,8 +970,8 @@ static move_result_t do_only_move(solver_state_t * state, int gap_index)
  */
 static move_result_t do_straight_path(solver_state_t * state, int gap_index)
 {
-    int w = state->w, h = state->h;
-    int x, y, sx, sy;
+    int w = state->w;
+    int x, y, sx, sy, n;
     gap_t const * gap = &state->gaps[gap_index];
     if (state->diagonal) {
         int dx = gap->l2.x - gap->l1.x;
@@ -998,7 +1000,7 @@ static move_result_t do_straight_path(solver_state_t * state, int gap_index)
     }
     x = gap->l1.x;
     y = gap->l1.y;
-    for (int n = gap->n1 + 1; n < gap->n2; n ++) {
+    for (n = gap->n1 + 1; n < gap->n2; n ++) {
         x += sx;
         y += sy;
         /* if there's already a number in this square, the puzzle is unsolvable */
@@ -1038,18 +1040,17 @@ static move_result_t do_straight_path(solver_state_t * state, int gap_index)
  */
 static int do_necessary_moves(solver_state_t * state)
 {
-    int w = state->w, h = state->h, area = w * h;
-    int changed;
+    int g, changed;
     do {
         changed = FALSE;
-        for (int g = 0; g < state->gaps_length; g++) {
-            gap_t const * gap = &state->gaps[g];
+        for (g = 0; g < state->gaps_length; g++) {
             switch (do_straight_path(state, g)) {
                 case UNSOLVABLE: return FALSE;
                 case MOVED:
                     changed = TRUE;
                     g --;
                     continue;
+                default: break; /* placate compiler warning */
             }
             switch (do_only_move(state, g)) {
                 case UNSOLVABLE: return FALSE;
@@ -1057,6 +1058,7 @@ static int do_necessary_moves(solver_state_t * state)
                     changed = TRUE;
                     g --;
                     continue;
+                default: break; /* placate compiler warning */
             }
         }
     } while (changed);
@@ -1184,15 +1186,17 @@ static int do_recursive_solve(solver_state_t * state, number_t ** solution, int 
     return FALSE;
 }
 
-static int gap_compare(gap_t const * a, gap_t const * b)
+static int gap_compare(const void *av, const void *bv)
 {
+    const gap_t *a = (const gap_t *)av, *b = (const gap_t *)bv;
     int dista = manhattan_distance(a->l1.x, a->l1.y, a->l2.x, a->l2.y);
     int distb = manhattan_distance(b->l1.x, b->l1.y, b->l2.x, b->l2.y);
     return dista - distb;
 }
 
-static int gap_compare_diag(gap_t const * a, gap_t const * b)
+static int gap_compare_diag(const void *av, const void *bv)
 {
+    const gap_t *a = (const gap_t *)av, *b = (const gap_t *)bv;
     int dista = chebyshev_distance(a->l1.x, a->l1.y, a->l2.x, a->l2.y);
     int distb = chebyshev_distance(b->l1.x, b->l1.y, b->l2.x, b->l2.y);
     return dista - distb;
@@ -1548,7 +1552,8 @@ static number_t * path_to_grid(location_t const * path, int w, int h)
 {
     int area = w * h;
     number_t * ret = snewn(area, number_t);
-    for (int i = 0; i < area; i ++) {
+    int i;
+    for (i = 0; i < area; i ++) {
         int x = path[i].x;
         int y = path[i].y;
         ret[y * w + x] = i + 1;
@@ -1576,6 +1581,7 @@ static number_t * generate_puzzle(game_params const * params, random_state * rs)
     int max_gap_length = MAX_GAP_LENGTH;
     int steps_limit = -1;
     int difficulty = params->difficulty;
+    int x, y, i;
 
     if (params->diagonal) {
         /*
@@ -1604,8 +1610,8 @@ static number_t * generate_puzzle(game_params const * params, random_state * rs)
 
         if (params->pattern == PATT_RING) {
             number_t * solution;
-            for (int y = 0; y < h; y ++) {
-                for (int x = 0; x < w; x ++) {
+            for (y = 0; y < h; y ++) {
+                for (x = 0; x < w; x ++) {
                     if (x == 0 || x == w - 1 || y == 0 || y == h - 1
                         || (x != 1 && x != w - 2 && y != 1 && y != h - 2))
                         grid[y * w + x] = 0;
@@ -1618,9 +1624,9 @@ static number_t * generate_puzzle(game_params const * params, random_state * rs)
             }
         } else if (params->pattern == PATT_BORDER) {
             number_t * solution;
-            for (int y = 0; y < h; y ++) {
-                for (int x = 0; x < w; x ++) {
-                    if (x != 0 && x != w - 1 && y != 0 && y != h - 1
+            for (y = 0; y < h; y ++) {
+                for (x = 0; x < w; x ++) {
+                    if ((x != 0 && x != w - 1 && y != 0 && y != h - 1)
                         || ((x + y) & 1) == 1)
                         grid[y * w + x] = 0;
                 }
@@ -1646,11 +1652,11 @@ static number_t * generate_puzzle(game_params const * params, random_state * rs)
             }
             shuffle(clues, clues_length, sizeof(number_t), rs);
 
-            for (int i = 0; i < clues_length; i ++) {
+            for (i = 0; i < clues_length; i ++) {
                 /* try removing a clue from the grid, see if it can still be solved */
                 number_t * solution;
                 int clue = clues[i];
-                int sclue;
+                int sclue = 0;
                 int rx = path[clue - 1].x;
                 int ry = path[clue - 1].y;
                 assert(grid[ry * w + rx] == clue);
@@ -1705,6 +1711,7 @@ static char * encode_desc_grid(number_t const * grid, int w, int h)
     int area = w * h;
     int len;
     char * p, * ret;
+    int x, y;
 
     /*
      * Length: we have [area] numbers, two characters each, and each with
@@ -1714,8 +1721,8 @@ static char * encode_desc_grid(number_t const * grid, int w, int h)
     ret = snewn(len, char);
 
     p = ret;
-    for (int y = 0; y < h; y ++) {
-        for (int x = 0; x < w; x ++) {
+    for (y = 0; y < h; y ++) {
+        for (x = 0; x < w; x ++) {
             if (x != 0 || y != 0)
                 *p++ = ',';
             int d = grid[y * w + x];
@@ -1848,7 +1855,7 @@ static int update_lines_helper(number_t const * grid, int w, int x, int y, int n
 /*
  * Sets the lines flags for the given square.
  */
-static void update_lines(game_state * state, int x, int y)
+static void update_lines(const game_state * state, int x, int y)
 {
     int w = state->w, h = state->h;
     int n = state->grid[y * w + x];
@@ -1916,6 +1923,7 @@ static game_state * game_new_game(midend * me, game_params const * params,
 {
     int w = params->w, h = params->h, area = w * h;
     game_state * state = snew(game_state);
+    int x, y, n;
 
     state->w = params->w;
     state->h = params->h;
@@ -1926,12 +1934,12 @@ static game_state * game_new_game(midend * me, game_params const * params,
     state->completed = state->cheated = FALSE;
 
     memset(state->square_infos, 0, sizeof(square_info_t) * area);
-    for (int n = 1; n <= area; n ++) {
+    for (n = 1; n <= area; n ++) {
         state->number_infos[n].l.x = state->number_infos[n].l.y = NO_COORD;
     }
-    for (int y = 0; y < h; y ++) {
-        for (int x = 0; x < w; x ++) {
-            int n = state->grid[y * w + x];
+    for (y = 0; y < h; y ++) {
+        for (x = 0; x < w; x ++) {
+            n = state->grid[y * w + x];
             if (n > 0) {
                 state->number_infos[n].l.x = x;
                 state->number_infos[n].l.y = y;
@@ -1993,7 +2001,7 @@ static game_state * game_execute_move(game_state const * state, char const * mov
 {
     game_state * ret = game_dup_game(state);
     int w = state->w, h = state->h, area = w * h;
-    int x, y, n;
+    int i, x, y, n;
 
 	if (sscanf(move, "A%d,%d:%d", &x, &y, &n) == 3) {
         ret->grid[y * w + x] = n;
@@ -2009,7 +2017,7 @@ static game_state * game_execute_move(game_state const * state, char const * mov
 
     /* recompute number and square info */
     ret->completed = TRUE;
-    for (int i = 1; i <= area; i ++) {
+    for (i = 1; i <= area; i ++) {
         ret->number_infos[i].l.x = ret->number_infos[i].l.y = NO_COORD;
     }
     for (y = 0; y < h; y ++) {
@@ -2190,7 +2198,6 @@ enum {
  */
 static game_drawstate * game_new_drawstate(drawing * dr, game_state const * state)
 {
-    int w = state->w, h = state->h, area = w * h;
     game_drawstate * ds = snew(game_drawstate);
 
     ds->grid = NULL; /* this NULL indicates that the game hasn't been drawn yet */
@@ -2386,6 +2393,7 @@ static void game_redraw(drawing * dr, game_drawstate * ds,
 {
     int tilesize = ds->tilesize;
     int w = state->w, h = state->h, area = w * h;
+    int x, y;
 
     if (ds->grid == NULL) {
         int ow = GAME_WIDTH(w);
@@ -2397,8 +2405,8 @@ static void game_redraw(drawing * dr, game_drawstate * ds,
         /* first time drawing, allocate the grid */
         ds->grid = snewn(area, square_draw_info_t);
 
-        for (int y = 0; y < h; y ++) {
-            for (int x = 0; x < w; x ++) {
+        for (y = 0; y < h; y ++) {
+            for (x = 0; x < w; x ++) {
                 draw_tile(dr, ds, state, ui, x, y, FALSE);
             }
         }
@@ -2412,8 +2420,8 @@ static void game_redraw(drawing * dr, game_drawstate * ds,
         int flashing = flashtime > 0;
         int flash = flashing && ((int)(flashtime / FLASH_FRAME) & 1) == 0;
 
-        for (int y = 0; y < h; y ++) {
-            for (int x = 0; x < w; x ++) {
+        for (y = 0; y < h; y ++) {
+            for (x = 0; x < w; x ++) {
                 int i = y * w + x;
                 int highlight = x == ui->highlight.x && y == ui->highlight.y;
                 square_info_t const * square = &state->square_infos[i];
@@ -2488,18 +2496,19 @@ static void game_print(drawing * dr, game_state const * state, int tilesize)
     int w = state->w, h = state->h;
     int black = print_mono_colour(dr, 0);
     int grey = print_grey_colour(dr, 0.80F);
+    int x, y;
 
     /* thick outline */
     print_line_width(dr, tilesize * 3 / 40);
     draw_rect_outline(dr, OUTER_PADDING, OUTER_PADDING, N_TILES_SIZE(w), N_TILES_SIZE(h), black);
     
     /* inner grid lines */
-    for (int x = 1; x < w; x++) {
+    for (x = 1; x < w; x++) {
         print_line_width(dr, tilesize / 40);
         draw_line(dr, OUTER_PADDING + N_TILES_SIZE(x), OUTER_PADDING,
             OUTER_PADDING + N_TILES_SIZE(x), OUTER_PADDING + N_TILES_SIZE(h), black);
     }
-    for (int y = 1; y < h; y++) {
+    for (y = 1; y < h; y++) {
         print_line_width(dr, tilesize / 40);
         draw_line(dr, OUTER_PADDING, OUTER_PADDING + N_TILES_SIZE(y),
             OUTER_PADDING + N_TILES_SIZE(w), OUTER_PADDING + N_TILES_SIZE(y), black);
@@ -2507,8 +2516,8 @@ static void game_print(drawing * dr, game_state const * state, int tilesize)
 
     /* clues */
     print_line_width(dr, PATH_LINE_THICKNESS);
-    for (int y = 0; y < h; y++) {
-	    for (int x = 0; x < w; x++) {
+    for (y = 0; y < h; y++) {
+        for (x = 0; x < w; x++) {
             int n = state->grid[y * w + x];
             if (n > 0) {
                 int cx = OUTER_PADDING + N_TILES_SIZE(x) + tilesize/2;
@@ -2583,7 +2592,7 @@ static char * game_interpret_move(game_state const * state, game_ui * ui,
             /* clear the highlight and next number */
             ui->next = ui->dir = 0;
             ui->highlight.x = ui->highlight.y = NO_COORD;
-            return strdup(buf);
+            return dupstr(buf);
         }
 
         if (button == LEFT_BUTTON) {
@@ -2629,7 +2638,7 @@ static char * game_interpret_move(game_state const * state, game_ui * ui,
                             ui->next = ui->dir = 0;
                             ui->highlight.x = ui->highlight.y = NO_COORD;
                         }
-                        return strdup(buf);
+                        return dupstr(buf);
                     }
                 } else {
                     
@@ -2697,7 +2706,7 @@ static char * game_interpret_move(game_state const * state, game_ui * ui,
                             ui->highlight.y = n_next->l.y;
                         }
                     }
-                    return strdup(buf);
+                    return dupstr(buf);
                 } else {
                     /*
                      * Clicked on an empty square, but not to put a number
